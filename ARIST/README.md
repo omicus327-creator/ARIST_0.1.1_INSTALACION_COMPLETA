@@ -182,11 +182,18 @@ Comandos:
 - `crea archivo <ruta> | <descripción>`
 - `comprueba sintaxis <archivo.py>`
 - `archivos proyecto`
+- `memoria` (memoria simulada, 1,024 posiciones)
+- `leer memoria <dirección>`
+- `escribe memoria <dirección> <valor>`
 - `unidades`
 - `lista directorios`
 - `crea directorio <ruta>`
 - `elimina directorio <ruta>` (solo elimina directorios vacíos y pide confirmación)
 - `cambia permisos <ruta> <r|w>` (Windows: solo lectura o escritura)
+- `abre archivo <ruta>` (documentos, imágenes y medios compatibles)
+- `reproduce multimedia <ruta>`
+- `mueve cursor <x> <y>` y `clic`
+- `estado equipo` (consulta puntual de RAM y procesos activos)
 - `lista archivos 3d`
 - `carga archivo <archivo.gcode>`
 - `inicia impresion <archivo.gcode>`
@@ -195,6 +202,8 @@ Comandos:
 - `salir`
 
 Las cargas e inicios requieren confirmación. El laminado automático de STL/3MF/OBJ aún no está implementado. Usa Cura o PrusaSlicer para generar G-code y coloca ese archivo en `print_files/`.
+
+ARIST guarda las conversaciones, el contexto del modelo y la memoria simulada en `D:\ARIST\conversaciones`. El historial de conversación queda en `conversaciones.jsonl`; el contexto que se restaura al iniciar está en `contexto_ia.json`, y las 1,024 posiciones de memoria en `memoria.json`.
 
 ## 10. Limitaciones conocidas
 

@@ -2,10 +2,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from . import config
+from . import computer_control
 from .ai import AIClient
 from .coding import ProjectTools
 from .database import Registry, digest_file
 from . import file_manager
+from .conversation_store import ConversationStore
+from .memory import Memoria
 from .printers import build_printer
 from .voice import Voice
 
@@ -13,9 +16,13 @@ GCODE={'.gcode','.gco','.gc'}
 MODEL3D={'.stl','.3mf','.obj'}
 class ARIST:
     def __init__(self,voice=None):
-        self.voice=voice or Voice(); self.ai=AIClient(); self.tools=ProjectTools(); self.registry=Registry()
-        self.printer=build_printer(config); self.active_job=None
-    def say(self,s): self.voice.say(s)
+        self.voice=voice or Voice(); self.store=ConversationStore(config.MEMORY_DIR)
+        self.ai=AIClient(self.store); self.tools=ProjectTools(); self.registry=Registry()
+        self.printer=build_printer(config); self.active_job=None; self.memory=Memoria(1024,self.store)
+    def say(self,s):
+        try: self.store.log('assistant',str(s))
+        except OSError: pass
+        self.voice.say(s)
     def files3d(self):
         items=[]
         for p in config.PRINT_FILES_DIR.rglob('*'):
@@ -72,9 +79,33 @@ class ARIST:
         return ans in {'si','sí','si confirmar','sí confirmar','confirmar','adelante'}
     def handle(self,cmd):
         c=cmd.strip(); low=c.lower()
+        try: self.store.log('user',c)
+        except OSError: pass
         if low in {'salir','terminar','cerrar arist'}: return False
         try:
             if low in {'ayuda','comandos'}: self.say(self.help()); return True
+            if low in {'estado equipo','monitorea equipo','estado computadora'}:
+                self.say(computer_control.system_snapshot()); return True
+            if low in {'clic','haz clic','clic raton','clic ratón'}:
+                computer_control.click_pointer(); self.say('Hice clic izquierdo en la posición actual del cursor.'); return True
+            m=re.match(r'^(?:mueve cursor|mueve raton|mueve ratón)\s+(\d+)\s+(\d+)$',c,re.I)
+            if m:
+                x,y=map(int,m.groups()); computer_control.move_pointer(x,y)
+                self.say(f'Moví el cursor a x={x}, y={y}.'); return True
+            m=re.match(r'^(?:abre archivo|abrir archivo)\s+(.+)$',c,re.I)
+            if m:
+                path=computer_control.open_file(m.group(1)); self.say(f'Abrí {path}.'); return True
+            m=re.match(r'^(?:reproduce|reproducir) (?:multimedia|archivo)\s+(.+)$',c,re.I)
+            if m:
+                path=computer_control.play_media(m.group(1)); self.say(f'Abrí el reproductor para {path}.'); return True
+            if low in {'memoria','ayuda memoria'}:
+                self.say('Memoria simulada persistente de 1024 posiciones; cada valor admite 0–255. Usa: leer memoria <dirección> o escribe memoria <dirección> <valor>. Los datos e historial se guardan en D:\\ARIST\\conversaciones.'); return True
+            m=re.match(r'^(?:leer|lee) memoria\s+(\d+)$',c,re.I)
+            if m:
+                address=int(m.group(1)); value=self.memory.leer(address); self.say(f'Memoria[{address}] = {value}'); return True
+            m=re.match(r'^(?:escribe|escribir) memoria\s+(\d+)\s+(\d+)$',c,re.I)
+            if m:
+                address,value=map(int,m.groups()); self.memory.escribir(address,value); self.say(f'Guardé {value} en Memoria[{address}].'); return True
             if low in {'unidades','lista unidades'}:
                 devices=file_manager.get_devices()
                 self.say('Unidades disponibles: '+(', '.join(devices) if devices else 'no se detectaron unidades.')); return True
@@ -131,4 +162,4 @@ class ARIST:
         except Exception as e: self.say(f'No pude completar la operación: {e}'); return True
     @staticmethod
     def help():
-        return '''COMANDOS ARIST\nPROGRAMACIÓN: programa <tarea>; corrige <error>; revisa archivo <ruta>; revisa proyecto; crea archivo <ruta> | <descripción>; comprueba sintaxis <archivo.py>; archivos proyecto.\nARCHIVOS: unidades; lista directorios; crea directorio <ruta>; elimina directorio <ruta>; cambia permisos <ruta> <r|w>. Las rutas quedan limitadas a la carpeta ARIST; solo se eliminan directorios vacíos. En Windows, r=solo lectura y w=escritura.\nIMPRESIÓN: lista archivos 3d; carga archivo <nombre.gcode>; inicia impresion <nombre.gcode>; estado impresora; historial.\nGENERAL: ayuda; salir.\nLos archivos de trabajo van en workspace y los modelos 3D/G-code en print_files. Las cargas e inicios requieren confirmación.'''
+        return '''COMANDOS ARIST\nPROGRAMACIÓN: programa <tarea>; corrige <error>; revisa archivo <ruta>; revisa proyecto; crea archivo <ruta> | <descripción>; comprueba sintaxis <archivo.py>; archivos proyecto.\nCONTROL LOCAL: abre archivo <ruta>; reproduce multimedia <ruta>; mueve cursor <x> <y>; clic; estado equipo (consulta memoria RAM y procesos activos bajo demanda).\nMEMORIA SIMULADA: memoria; leer memoria <dirección>; escribe memoria <dirección> <valor> (direcciones 0–1023; valores 0–255; se guarda en D:\\ARIST\\conversaciones).\nARCHIVOS: unidades; lista directorios; crea directorio <ruta>; elimina directorio <ruta>; cambia permisos <ruta> <r|w>. Las rutas quedan limitadas a la carpeta ARIST; solo se eliminan directorios vacíos. En Windows, r=solo lectura y w=escritura.\nIMPRESIÓN: lista archivos 3d; carga archivo <nombre.gcode>; inicia impresion <nombre.gcode>; estado impresora; historial.\nGENERAL: ayuda; salir.\nLas conversaciones y el contexto del modelo se conservan en D:\\ARIST\\conversaciones.'''

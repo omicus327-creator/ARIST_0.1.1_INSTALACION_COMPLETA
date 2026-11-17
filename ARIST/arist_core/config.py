@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / '.env')
+MEMORY_DIR = Path(os.getenv('ARIST_MEMORY_DIR', r'D:\ARIST\conversaciones')).expanduser().resolve()
+MEMORY_DIR.mkdir(parents=True, exist_ok=True)
 
 def env_path(name: str, default: Path) -> Path:
     value = os.getenv(name, '').strip()
