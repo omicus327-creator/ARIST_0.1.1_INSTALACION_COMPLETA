@@ -1,0 +1,30 @@
+ARIST - COMANDOS DE INSTALACIÓN (Windows PowerShell)
+====================================================
+1. Núcleo:
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+   .\INSTALAR_ARIST.ps1
+
+2. Ollama y modelo principal:
+   .\INSTALAR_OLLAMA.ps1
+
+3. Iniciar:
+   .\.venv\Scripts\python.exe arist.py
+
+4. Voz opcional:
+   .\INSTALAR_VOZ.ps1
+   .\.venv\Scripts\python.exe arist.py --voz
+   .\.venv\Scripts\python.exe arist.py --voz-manual
+
+5. Palabra clave ARIST:
+   .\DESCARGAR_MODELO_VOSK.ps1
+   .\.venv\Scripts\python.exe arist.py --activar-voz
+
+6. Comprobar instalación:
+   .\COMPROBAR_INSTALACION.ps1
+
+7. Modelo alternativo más pequeño:
+   ollama pull llama3.2:1b
+   Después cambia ARIST_MODEL=llama3.2:1b en .env
+
+Nota: Vosk detecta localmente la palabra clave, pero la transcripción de la orden
+usa Google Speech Recognition y requiere Internet en esta versión.
